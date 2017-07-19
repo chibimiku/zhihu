@@ -16,6 +16,7 @@ from collections import namedtuple
 
 import numpy as np
 import tensorflow as tf
+import jieba
 
 
 # # 1 数据加载与预处理
@@ -140,13 +141,13 @@ def build_lstm(lstm_size, num_layers, batch_size, keep_prob):
 
     '''
     # 构建一个基本lstm单元
-    lstm = tf.nn.rnn_cell.BasicLSTMCell(lstm_size)
+    lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
     
     # 添加dropout
-    drop = tf.nn.rnn_cell.DropoutWrapper(lstm, output_keep_prob=keep_prob)
+    drop = tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob)
     
     # 堆叠
-    cell = tf.nn.rnn_cell.MultiRNNCell([drop for _ in range(num_layers)])
+    cell = tf.contrib.rnn.MultiRNNCell([drop for _ in range(num_layers)])
     initial_state = cell.zero_state(batch_size, tf.float32)
     
     return cell, initial_state
@@ -168,7 +169,7 @@ def build_output(lstm_output, in_size, out_size):
 
     # 将lstm的输出按照列concate，例如[[1,2,3],[7,8,9]],
     # tf.concat的结果是[1,2,3,7,8,9]
-    seq_output = tf.concat(1, lstm_output) # tf.concat(concat_dim, values)
+    seq_output = tf.concat(lstm_output, axis=1) # tf.concat(concat_dim, values)
     # reshape
     x = tf.reshape(seq_output, [-1, in_size])
     
