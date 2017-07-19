@@ -18,12 +18,26 @@ import numpy as np
 import tensorflow as tf
 import jieba
 
+#一些开开关，决定处理行为
+
+do_train = False
 
 # # 1 数据加载与预处理
 
 # In[2]:
 
-with open('anna.txt', 'r') as f:
+def cut_file_by_jieba(ori_filename, output_filename, in_vocab):
+    with open(ori_filename, 'r', encoding = 'utf8') as f:
+        #输出文件
+        outfileobj.write(" ".join(seg_list))
+        outfileobj.write("\n")
+        #维护词表
+        for single_seg in seg_list:
+            if(not single_seg in in_vocab):
+                in_vocab.append(single_seg)
+    return in_vocab
+
+with open('galactic_heroes.txt', 'r', encoding="utf8") as f:
     text=f.read()
 vocab = set(text)
 vocab_to_int = {c: i for i, c in enumerate(vocab)}
@@ -140,14 +154,22 @@ def build_lstm(lstm_size, num_layers, batch_size, keep_prob):
     batch_size: batch_size
 
     '''
+    
+    '''
     # 构建一个基本lstm单元
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
     
     # 添加dropout
     drop = tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob)
-    
+    '''
     # 堆叠
-    cell = tf.contrib.rnn.MultiRNNCell([drop for _ in range(num_layers)])
+    rnn_list = []
+    for _ in range(num_layers):
+        lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
+        drop = tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob)
+        rnn_list.append(drop)
+    #cell = tf.contrib.rnn.MultiRNNCell([drop for _ in range(num_layers)])
+    cell = tf.contrib.rnn.MultiRNNCell(rnn_list)
     initial_state = cell.zero_state(batch_size, tf.float32)
     
     return cell, initial_state
@@ -293,7 +315,7 @@ class CharRNN:
 batch_size = 100         # Sequences per batch
 num_steps = 100          # Number of sequence steps per batch
 lstm_size = 512         # Size of hidden layers in LSTMs
-num_layers = 2          # Number of LSTM layers
+num_layers = 4          # Number of LSTM layers
 learning_rate = 0.001    # Learning rate
 keep_prob = 0.5         # Dropout keep probability
 
@@ -304,44 +326,48 @@ epochs = 20
 # 每n轮进行一次变量保存
 save_every_n = 200
 
-model = CharRNN(len(vocab), batch_size=batch_size, num_steps=num_steps,
-                lstm_size=lstm_size, num_layers=num_layers, 
-                learning_rate=learning_rate)
+if(do_train):
+    model = CharRNN(len(vocab), batch_size=batch_size, num_steps=num_steps,
+                    lstm_size=lstm_size, num_layers=num_layers, 
+                    learning_rate=learning_rate)
 
-saver = tf.train.Saver(max_to_keep=100)
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    
-    counter = 0
-    for e in range(epochs):
-        # Train network
-        new_state = sess.run(model.initial_state)
-        loss = 0
-        for x, y in get_batches(encoded, batch_size, num_steps):
-            counter += 1
-            start = time.time()
-            feed = {model.inputs: x,
-                    model.targets: y,
-                    model.keep_prob: keep_prob,
-                    model.initial_state: new_state}
-            batch_loss, new_state, _ = sess.run([model.loss, 
-                                                 model.final_state, 
-                                                 model.optimizer], 
-                                                 feed_dict=feed)
-            
-            end = time.time()
-            # control the print lines
-            if counter % 100 == 0:
-                print('轮数: {}/{}... '.format(e+1, epochs),
-                      '训练步数: {}... '.format(counter),
-                      '训练误差: {:.4f}... '.format(batch_loss),
-                      '{:.4f} sec/batch'.format((end-start)))
+    saver = tf.train.Saver(max_to_keep=100)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        
+        counter = 0
+        for e in range(epochs):
+            # Train network
+            new_state = sess.run(model.initial_state)
+            loss = 0
+            for x, y in get_batches(encoded, batch_size, num_steps):
+                counter += 1
+                start = time.time()
+                feed = {model.inputs: x,
+                        model.targets: y,
+                        model.keep_prob: keep_prob,
+                        model.initial_state: new_state}
+                batch_loss, new_state, _ = sess.run([model.loss, 
+                                                     model.final_state, 
+                                                     model.optimizer], 
+                                                     feed_dict=feed)
+                
+                end = time.time()
+                # control the print lines
+                if counter % 100 == 0:
+                    print('轮数: {}/{}... '.format(e+1, epochs),
+                          '训练步数: {}... '.format(counter),
+                          '训练误差: {:.4f}... '.format(batch_loss),
+                          '{:.4f} sec/batch'.format((end-start)))
 
-            if (counter % save_every_n == 0):
-                saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
-    
-    saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
-
+                if (counter % save_every_n == 0):
+                    #saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
+                    saver.save(sess, "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt")
+        
+        #saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
+        saver.save(sess, "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt")
+else:
+    print ("do_train is False, skip trainning...")
 
 # In[17]:
 
@@ -430,15 +456,15 @@ def sample(checkpoint, n_samples, lstm_size, vocab_size, prime="The "):
 
 tf.train.latest_checkpoint('checkpoints')
 
-
+print ("checking final output...")
 # In[26]:
 
 # 选用最终的训练参数作为输入进行文本生成
 checkpoint = tf.train.latest_checkpoint('checkpoints')
-samp = sample(checkpoint, 2000, lstm_size, len(vocab), prime="The")
+samp = sample(checkpoint, 2000, lstm_size, len(vocab), prime="地球教")
 print(samp)
 
-
+'''
 # In[22]:
 
 checkpoint = 'checkpoints/i200_l512.ckpt'
@@ -459,3 +485,4 @@ checkpoint = 'checkpoints/i2000_l512.ckpt'
 samp = sample(checkpoint, 1000, lstm_size, len(vocab), prime="Far")
 print(samp)
 
+'''
