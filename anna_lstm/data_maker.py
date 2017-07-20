@@ -54,6 +54,7 @@ def gen_cut_file_jieba(input_file, cut_outputfile, vocabulary_outfile, vec_outpu
     data_utils.data_to_token_ids(cut_outputfile, vec_outputfile, vocabulary_outfile)
     
 #获取词典.这里稍微封装了一下，支持把反向单词列表如['dog','cat']给dict化
+#注意给出的都是byte（tf.compat.as_bytes()的产物），不是string.
 def get_vocab_from_file(vocabulary_path, rev_to_dict = False):
     vocab, rev_vocab = data_utils.initialize_vocabulary(vocabulary_path)
     if(rev_to_dict):
