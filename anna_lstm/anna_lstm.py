@@ -17,34 +17,54 @@ from collections import namedtuple
 import numpy as np
 import tensorflow as tf
 import jieba
+import data_maker
 
 #一些开开关，决定处理行为
 
-do_train = False
+do_train = True
 
 # # 1 数据加载与预处理
 
 # In[2]:
 
-def cut_file_by_jieba(ori_filename, output_filename, in_vocab):
-    with open(ori_filename, 'r', encoding = 'utf8') as f:
-        #输出文件
-        outfileobj.write(" ".join(seg_list))
-        outfileobj.write("\n")
-        #维护词表
-        for single_seg in seg_list:
-            if(not single_seg in in_vocab):
-                in_vocab.append(single_seg)
-    return in_vocab
-
+'''
 with open('galactic_heroes.txt', 'r', encoding="utf8") as f:
     text=f.read()
 vocab = set(text)
 vocab_to_int = {c: i for i, c in enumerate(vocab)}
 int_to_vocab = dict(enumerate(vocab))
-encoded = np.array([vocab_to_int[c] for c in text], dtype=np.int32)
+'''
+vocab_to_int, vocab, int_to_vocab = data_maker.get_vocab_from_file('data/galactic_heroes_vocab.txt')
+#print (vocab_to_int)
+print (vocab_to_int["地球"])
 
+__NEWLINE_ID__ = 0
 
+c_list = []
+with open('data/galactic_heroes_vec.txt', 'r', encoding="utf-8") as f:
+    last_word = ""
+    last_newline = False
+    for line in f:
+        line = line.strip() #去掉末尾换行
+        if(line == ""):
+            continue #去掉空行
+        word_ints = line.split(" ")
+        for w in word_ints:
+            if(w == ""):
+                continue #跳过空白
+            if(not w == last_word):
+                c_list.append(w)
+                last_word = w
+                last_newline = False
+        #一行结束加个换行
+        last_newline = True
+        c_list.append(__NEWLINE_ID__)
+#encoded = np.array([vocab_to_int[c] for c in text], dtype=np.int32)
+
+print (len(c_list))
+#print (c_list[0])
+encoded = np.array(c_list ,dtype=np.int32)
+text = c_list
 # In[3]:
 
 text[:100]
@@ -312,10 +332,10 @@ class CharRNN:
 
 # In[15]:
 
-batch_size = 100         # Sequences per batch
+batch_size = 50         # Sequences per batch
 num_steps = 100          # Number of sequence steps per batch
 lstm_size = 512         # Size of hidden layers in LSTMs
-num_layers = 4          # Number of LSTM layers
+num_layers = 2          # Number of LSTM layers
 learning_rate = 0.001    # Learning rate
 keep_prob = 0.5         # Dropout keep probability
 
@@ -332,6 +352,12 @@ if(do_train):
                     learning_rate=learning_rate)
 
     saver = tf.train.Saver(max_to_keep=100)
+    
+    #防止 out of memory
+    config = tf.ConfigProto()
+    config.gpu_options.allocator_type = 'BFC'
+    config.gpu_options.allow_growth = True
+    
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
@@ -413,7 +439,8 @@ def sample(checkpoint, n_samples, lstm_size, vocab_size, prime="The "):
     prime: 起始文本
     """
     # 将输入的单词转换为单个字符组成的list
-    samples = [c for c in prime]
+    #samples = [c for c in prime]
+    samples = jieba.lcut(prime)
     # sampling=True意味着batch的size=1 x 1
     model = CharRNN(len(vocab), lstm_size=lstm_size, sampling=True)
     saver = tf.train.Saver()
@@ -421,7 +448,9 @@ def sample(checkpoint, n_samples, lstm_size, vocab_size, prime="The "):
         # 加载模型参数，恢复训练
         saver.restore(sess, checkpoint)
         new_state = sess.run(model.initial_state)
-        for c in prime:
+        in_list = jieba.lcut(prime)
+        #for c in prime:
+        for c in in_list:
             x = np.zeros((1, 1))
             # 输入单个字符
             x[0,0] = vocab_to_int[c]

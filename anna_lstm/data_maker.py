@@ -55,18 +55,45 @@ def gen_cut_file_jieba(input_file, cut_outputfile, vocabulary_outfile, vec_outpu
     
 #获取词典.这里稍微封装了一下，支持把反向单词列表如['dog','cat']给dict化
 #注意给出的都是byte（tf.compat.as_bytes()的产物），不是string.
+
+'''
+  Returns:
+    a pair: the vocabulary (a dictionary mapping string to integers), and
+    the reversed vocabulary (a list, which reverses the vocabulary mapping).
+'''
 def get_vocab_from_file(vocabulary_path, rev_to_dict = False):
     vocab, rev_vocab = data_utils.initialize_vocabulary(vocabulary_path)
-    if(rev_to_dict):
-        return vocab, dict(enumerate(rev_vocab))
-    else:
-        return vocab, rev_vocab
+    rev_vocab = convet_list_value_from_byte_to_str(rev_vocab)
+    vocab = convet_dict_value_from_byte_to_str(vocab)
+    rev_dict_vocab = dict(enumerate(rev_vocab))
+    return (vocab, rev_vocab, rev_dict_vocab)
+
+def convet_list_value_from_byte_to_str(in_list, encoding="utf8"):
+    new_list = []
+    for v in in_list:
+        new_list.append(v.decode(encoding))
+    return new_list
+    
+def convet_dict_value_from_byte_to_str(in_dict, encoding="utf8"):
+    new_dict = {}
+    for k,v in in_dict.items():
+        if(isinstance(k, bytes)):
+            new_dict[k.decode(encoding)] = v
+        else:
+            new_dict[k] = v
+    return new_dict
+    
+def get_wordlist_from_vocab_text(content_path, rev_dict_vocab):
+    print ("got first word as:" + str(rev_dict_vocab[0]))
+    with open(content_path, 'r', encoding="utf8") as f:
+        text=f.read()
+    return data_utils.sentence_to_token_ids(text, rev_dict_vocab)
  
 def test():
-    gen_cut_file_jieba('data/test_input.txt', 'data/test_cut.txt', 'data/test_vocab.txt', 'data/test_vec.txt')
-    vocab, rev_vocab = get_vocab_from_file('data/test_vocab.txt')
-    print (vocab)
-    print (rev_vocab)
+    gen_cut_file_jieba('data/galactic_heroes.txt', 'data/galactic_heroes_cut.txt', 'data/galactic_heroes_vocab.txt', 'data/galactic_heroes_vec.txt', start_header = ['__NEWLINE__'])
+    #vocab, rev_vocab = get_vocab_from_file('data/test_vocab.txt')
+    #print (vocab)
+    #print (rev_vocab)
 
 if __name__=='__main__':
     test()
