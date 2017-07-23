@@ -34,14 +34,14 @@ vocab = set(text)
 vocab_to_int = {c: i for i, c in enumerate(vocab)}
 int_to_vocab = dict(enumerate(vocab))
 '''
-vocab_to_int, vocab, int_to_vocab = data_maker.get_vocab_from_file('data/galactic_heroes_vocab.txt')
-#print (vocab_to_int)
-print (vocab_to_int["地球"])
 
+file_front = 'dune'
+
+vocab_to_int, vocab, int_to_vocab = data_maker.get_vocab_from_file('data/' + file_front + '_vocab.txt')
 __NEWLINE_ID__ = 0
 
 c_list = []
-with open('data/galactic_heroes_vec.txt', 'r', encoding="utf-8") as f:
+with open('data/' + file_front + '_vec.txt', 'r', encoding="utf-8") as f:
     last_word = ""
     last_newline = False
     for line in f:
@@ -334,7 +334,7 @@ class CharRNN:
 
 batch_size = 50         # Sequences per batch
 num_steps = 100          # Number of sequence steps per batch
-lstm_size = 512         # Size of hidden layers in LSTMs
+lstm_size = 768         # Size of hidden layers in LSTMs
 num_layers = 2          # Number of LSTM layers
 learning_rate = 0.001    # Learning rate
 keep_prob = 0.5         # Dropout keep probability
@@ -344,7 +344,7 @@ keep_prob = 0.5         # Dropout keep probability
 
 epochs = 20
 # 每n轮进行一次变量保存
-save_every_n = 200
+save_every_n = 100
 
 if(do_train):
     model = CharRNN(len(vocab), batch_size=batch_size, num_steps=num_steps,
@@ -490,7 +490,7 @@ print ("checking final output...")
 
 # 选用最终的训练参数作为输入进行文本生成
 checkpoint = tf.train.latest_checkpoint('checkpoints')
-samp = sample(checkpoint, 2000, lstm_size, len(vocab), prime="地球教")
+samp = sample(checkpoint, 2000, lstm_size, len(vocab), prime="地球")
 print(samp)
 
 '''

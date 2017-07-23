@@ -89,11 +89,12 @@ def get_wordlist_from_vocab_text(content_path, rev_dict_vocab):
         text=f.read()
     return data_utils.sentence_to_token_ids(text, rev_dict_vocab)
  
-def test():
-    gen_cut_file_jieba('data/galactic_heroes.txt', 'data/galactic_heroes_cut.txt', 'data/galactic_heroes_vocab.txt', 'data/galactic_heroes_vec.txt', start_header = ['__NEWLINE__'])
+def test(filename):
+    gen_cut_file_jieba('data/' + filename + '.txt', 'data/' + filename + '_cut.txt', 'data/' + filename + '_vocab.txt', 'data/' + filename + '_vec.txt', start_header = ['__NEWLINE__'])
     #vocab, rev_vocab = get_vocab_from_file('data/test_vocab.txt')
     #print (vocab)
     #print (rev_vocab)
+    print ("cue file task done.")
 
 if __name__=='__main__':
-    test()
+    test('dune')
