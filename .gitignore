@@ -3,11 +3,5 @@
 *.DS_Store
 *.swp
 *.pyc
-anna_lstm/checkpoints/checkpoint
-anna_lstm/checkpoints/lstm_size_768.ckpt.data-00000-of-00001
-anna_lstm/checkpoints/lstm_size_768.ckpt.meta
-anna_lstm/checkpoints/lstm_size_768.ckpt.index
-anna_lstm/checkpoints_galactic_heroes/checkpoint
-anna_lstm/checkpoints_galactic_heroes/lstm_size_512.ckpt.data-00000-of-00001
-anna_lstm/checkpoints_galactic_heroes/lstm_size_512.ckpt.index
-anna_lstm/checkpoints_galactic_heroes/lstm_size_512.ckpt.meta
+anna_lstm/checkpoints/*
+anna_lstm/checkpoints_galactic_heroes/*
