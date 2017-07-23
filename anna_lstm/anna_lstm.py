@@ -359,8 +359,17 @@ if(do_train):
     config.gpu_options.allow_growth = True
     
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        
+    
+        ckpt_path = "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt"
+        in_global_step = 0
+        #如果有的话读档
+        ckpt = tf.train.get_checkpoint_state('checkpoints/')
+        if ckpt != None:
+            print("得到上次保存模型的位置：" + ckpt_path)
+            saver.restore(sess, ckpt_path)
+        else:
+            sess.run(tf.global_variables_initializer())
+
         counter = 0
         for e in range(epochs):
             # Train network
@@ -368,6 +377,7 @@ if(do_train):
             loss = 0
             for x, y in get_batches(encoded, batch_size, num_steps):
                 counter += 1
+                in_global_step += 1
                 start = time.time()
                 feed = {model.inputs: x,
                         model.targets: y,
@@ -388,7 +398,7 @@ if(do_train):
 
                 if (counter % save_every_n == 0):
                     #saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
-                    saver.save(sess, "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt")
+                    saver.save(sess, "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt", global_step=in_global_step)
         
         #saver.save(sess, "checkpoints/i{}_l{}.ckpt".format(counter, lstm_size))
         saver.save(sess, "checkpoints/lstm_size_" + str(lstm_size) + ".ckpt")
